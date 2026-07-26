@@ -2,6 +2,38 @@
    BLOOM — Interactive Flower with MediaPipe Hands
    ═══════════════════════════════════════════════ */
 
+// ── Suppress MediaPipe's internal WebGL alert ──
+// MediaPipe throws "Failed to create WebGL canvas context" as a browser alert.
+// We intercept it silently and let our own error handler recover.
+const _nativeAlert = window.alert.bind(window);
+window.alert = (msg) => {
+  if (typeof msg === 'string' && msg.toLowerCase().includes('webgl')) {
+    console.warn('[Bloom] Suppressed MediaPipe WebGL alert:', msg);
+    return; // swallow it — our auto-restart will handle recovery
+  }
+  _nativeAlert(msg);
+};
+
+// Catch unhandled promise rejections from MediaPipe WebGL crashes
+window.addEventListener('unhandledrejection', (e) => {
+  const msg = e.reason?.message || String(e.reason);
+  if (msg.toLowerCase().includes('webgl') || msg.toLowerCase().includes('canvas context')) {
+    console.warn('[Bloom] Caught WebGL rejection, scheduling restart…');
+    e.preventDefault();
+    scheduleRestart();
+  }
+});
+
+// Catch synchronous errors from MediaPipe
+window.addEventListener('error', (e) => {
+  const msg = e.message || '';
+  if (msg.toLowerCase().includes('webgl') || msg.toLowerCase().includes('canvas context')) {
+    console.warn('[Bloom] Caught WebGL error, scheduling restart…');
+    e.preventDefault();
+    scheduleRestart();
+  }
+});
+
 // ── Canvas setup ────────────────────────────────
 const flowerCanvas  = document.getElementById('flower-canvas');
 const sparkleCanvas = document.getElementById('sparkle-canvas');
@@ -310,8 +342,35 @@ function pinchDist(lm) {
   return Math.hypot(t.x - i.x, t.y - i.y);
 }
 
+// ── Auto-restart logic ──────────────────────────
+let restartTimer    = null;
+let handsInstance   = null;
+let cameraInstance  = null;
+let videoStream     = null;
+let isRestarting    = false;
+
+function scheduleRestart(delay = 3000) {
+  if (restartTimer || isRestarting) return;
+  setStatus('error', '↺ Reconnecting…');
+  restartTimer = setTimeout(async () => {
+    restartTimer = null;
+    await teardownMediaPipe();
+    await initMediaPipe();
+  }, delay);
+}
+
+async function teardownMediaPipe() {
+  isRestarting = true;
+  try {
+    if (cameraInstance) { try { cameraInstance.stop(); } catch(_) {} cameraInstance = null; }
+    if (videoStream)    { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+    if (handsInstance)  { try { handsInstance.close(); } catch(_) {} handsInstance = null; }
+  } catch(_) {}
+  handDetected = false;
+  isRestarting = false;
+}
+
 async function initMediaPipe() {
-  // Check if MediaPipe is available
   if (typeof Hands === 'undefined') {
     setStatus('error', '⚠ MediaPipe unavailable');
     showToast('MediaPipe failed to load — drag the flower manually!', 5000);
@@ -319,44 +378,44 @@ async function initMediaPipe() {
   }
 
   try {
-    const hands = new Hands({
+    handsInstance = new Hands({
       locateFile: (f) => `https://unpkg.com/@mediapipe/hands/${f}`
     });
 
-    hands.setOptions({
+    // modelComplexity:0 uses CPU fallback — avoids most WebGL context crashes
+    handsInstance.setOptions({
       maxNumHands: 1,
-      modelComplexity: 1,
+      modelComplexity: 0,
       minDetectionConfidence: 0.7,
       minTrackingConfidence: 0.6,
     });
 
-    hands.onResults((results) => {
+    handsInstance.onResults((results) => {
       // Mirror draw to cam preview
-      cc.save();
-      cc.scale(-1, 1);
-      cc.drawImage(results.image, -camCanvas.width, 0, camCanvas.width, camCanvas.height);
-      cc.restore();
+      try {
+        cc.save();
+        cc.scale(-1, 1);
+        cc.drawImage(results.image, -camCanvas.width, 0, camCanvas.width, camCanvas.height);
+        cc.restore();
+      } catch(_) {}
 
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         const lm = results.multiHandLandmarks[0];
         handDetected = true;
 
-        // Draw skeleton on preview
-        if (typeof drawConnectors !== 'undefined') {
-          drawConnectors(cc, lm, HAND_CONNECTIONS, { color: 'rgba(168,85,247,0.7)', lineWidth: 2 });
-          drawLandmarks(cc, lm, { color: '#ff6fa8', lineWidth: 1, radius: 3 });
-        }
+        try {
+          if (typeof drawConnectors !== 'undefined') {
+            drawConnectors(cc, lm, HAND_CONNECTIONS, { color: 'rgba(168,85,247,0.7)', lineWidth: 2 });
+            drawLandmarks(cc, lm, { color: '#ff6fa8', lineWidth: 1, radius: 3 });
+          }
+        } catch(_) {}
 
         const dist = pinchDist(lm);
         targetBloom = Math.max(0, Math.min(1, (dist - PINCH_CLOSE) / (PINCH_OPEN - PINCH_CLOSE)));
 
-        if (targetBloom > 0.8) {
-          setStatus('blooming', 'Blooming! 🌸');
-        } else if (targetBloom < 0.15) {
-          setStatus('ready', 'Pinching 🤏');
-        } else {
-          setStatus('ready', 'Hand detected ✋');
-        }
+        if (targetBloom > 0.8)       setStatus('blooming', 'Blooming! 🌸');
+        else if (targetBloom < 0.15) setStatus('ready', 'Pinching 🤏');
+        else                          setStatus('ready', 'Hand detected ✋');
         dismissOverlay();
       } else {
         handDetected = false;
@@ -366,29 +425,42 @@ async function initMediaPipe() {
     });
 
     // Get camera stream
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } });
-    videoEl.srcObject = stream;
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480, facingMode: 'user' }
+    });
+    videoEl.srcObject = videoStream;
     await videoEl.play();
 
     camPreview.classList.add('visible');
     setStatus('ready', 'Show your hand ✋');
     mediapipeReady = true;
 
-    // Process frames
-    const cam = new Camera(videoEl, {
+    // Process frames — wrap each send() in try-catch to survive WebGL hiccups
+    cameraInstance = new Camera(videoEl, {
       onFrame: async () => {
-        await hands.send({ image: videoEl });
+        try {
+          if (handsInstance) await handsInstance.send({ image: videoEl });
+        } catch (frameErr) {
+          const msg = frameErr?.message || '';
+          if (msg.toLowerCase().includes('webgl') || msg.toLowerCase().includes('canvas')) {
+            console.warn('[Bloom] WebGL frame error, will restart:', msg);
+            scheduleRestart(2000);
+          }
+        }
       },
       width: 640,
       height: 480,
     });
-    await cam.start();
+    await cameraInstance.start();
 
   } catch (err) {
-    console.error('MediaPipe/Camera error:', err);
+    console.error('[Bloom] Init error:', err);
     if (err.name === 'NotAllowedError') {
       setStatus('error', '⚠ Camera denied');
       showToast('Camera access denied. Drag the flower to bloom it!', 5000);
+    } else if (err.message?.toLowerCase().includes('webgl')) {
+      setStatus('error', '↺ Reconnecting…');
+      scheduleRestart(3000);
     } else {
       setStatus('error', '⚠ Camera error');
       showToast('Camera unavailable. Drag the flower to bloom it!', 5000);
