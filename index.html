@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bloom — Pinch to Blossom</title>
-  <meta name="description" content="An interactive flower that blooms when you pinch your fingers using MediaPipe hand tracking." />
+  <meta name="description" content="An interactive flower that blooms when you pinch your fingers using hand tracking." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
@@ -20,7 +20,7 @@
       <span class="logo-text">Bloom</span>
     </div>
     <div class="status-pill" id="status-pill">
-      <span class="status-dot" id="status-dot"></span>
+      <span class="status-dot"></span>
       <span id="status-label">Loading…</span>
     </div>
   </header>
@@ -44,7 +44,6 @@
       <div class="bloom-meter-value" id="bloom-value">0%</div>
     </div>
 
-    <!-- Toast notification -->
     <div class="toast" id="toast"></div>
 
     <div class="instructions" id="instructions">
@@ -60,16 +59,17 @@
           <div class="step"><span class="step-num">2</span>Show hand</div>
           <div class="step"><span class="step-num">3</span>Pinch &amp; open</div>
         </div>
-        <p class="fallback-note">No camera? <strong>Drag left/right</strong> on the flower to bloom it manually.</p>
+        <p class="fallback-note">No camera? <strong>Drag left/right</strong> on the flower.</p>
         <button class="start-btn" id="start-btn">Start Experience →</button>
       </div>
     </div>
   </main>
 
-  <!-- MediaPipe via unpkg (more reliable) -->
-  <script src="https://unpkg.com/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <!-- TensorFlow.js + Hand Pose Detection (stable, no WebGL alerts) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.21.0/dist/tf-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.21.0/dist/tf-backend-webgl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.21.0/dist/tf-backend-cpu.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.1/dist/hand-pose-detection.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
