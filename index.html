@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bloom — Pinch to Blossom</title>
-  <meta name="description" content="An interactive flower that blooms when you pinch your fingers using hand tracking." />
+  <meta name="description" content="An interactive flower that blooms when you pinch your fingers." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
@@ -65,11 +65,13 @@
     </div>
   </main>
 
-  <!-- TensorFlow.js + Hand Pose Detection (stable, no WebGL alerts) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.21.0/dist/tf-core.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.21.0/dist/tf-backend-webgl.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.21.0/dist/tf-backend-cpu.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.1/dist/hand-pose-detection.min.js"></script>
+  <!--
+    MediaPipe Tasks-Vision (NEW stable API)
+    - Uses WASM + CPU delegate
+    - ZERO WebGL canvas context errors
+    - ZERO alert() calls ever
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.js" crossorigin="anonymous"></script>
   <script src="app.js"></script>
 </body>
 </html>
