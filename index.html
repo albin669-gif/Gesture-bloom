@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bloom — Pinch to Blossom</title>
+  <meta name="description" content="An interactive flower that blooms when you pinch your fingers using MediaPipe hand tracking." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="particles-bg"></div>
+
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">🌸</span>
+      <span class="logo-text">Bloom</span>
+    </div>
+    <div class="status-pill" id="status-pill">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-label">Loading…</span>
+    </div>
+  </header>
+
+  <main class="scene">
+    <video id="webcam" autoplay playsinline muted></video>
+
+    <div class="cam-preview" id="cam-preview">
+      <canvas id="cam-canvas"></canvas>
+      <div class="cam-label">Your Hand ✋</div>
+    </div>
+
+    <canvas id="flower-canvas"></canvas>
+    <canvas id="sparkle-canvas"></canvas>
+
+    <div class="bloom-meter">
+      <div class="bloom-meter-label">Bloom</div>
+      <div class="bloom-meter-track">
+        <div class="bloom-meter-fill" id="bloom-fill"></div>
+      </div>
+      <div class="bloom-meter-value" id="bloom-value">0%</div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+
+    <div class="instructions" id="instructions">
+      <div class="instruction-card">
+        <div class="instruction-icon">🌸</div>
+        <h1 class="instruction-title">Pinch to Bloom</h1>
+        <p class="instruction-sub">
+          Hold your hand up and pinch your <strong>thumb &amp; index finger</strong>
+          — then slowly open them to watch the flower bloom.
+        </p>
+        <div class="instruction-steps">
+          <div class="step"><span class="step-num">1</span>Allow camera</div>
+          <div class="step"><span class="step-num">2</span>Show hand</div>
+          <div class="step"><span class="step-num">3</span>Pinch &amp; open</div>
+        </div>
+        <p class="fallback-note">No camera? <strong>Drag left/right</strong> on the flower to bloom it manually.</p>
+        <button class="start-btn" id="start-btn">Start Experience →</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- MediaPipe via unpkg (more reliable) -->
+  <script src="https://unpkg.com/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="app.js"></script>
+</body>
+</html>
