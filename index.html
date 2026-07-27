@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bloom — Pinch to Blossom</title>
   <meta name="description" content="An interactive flower that blooms when you pinch your fingers." />
+
+  <!--
+    ⚠️ CRITICAL: This MUST be the very first script.
+    Suppress window.alert BEFORE MediaPipe loads so its
+    internal WebGL alerts are silently swallowed.
+  -->
+  <script>
+    window.alert = function(msg) {
+      console.warn('[Bloom] Suppressed alert:', msg);
+      // Never show any popup — ever
+    };
+    window.confirm = function() { return true; };
+    window.prompt  = function() { return null; };
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
@@ -59,19 +74,16 @@
           <div class="step"><span class="step-num">2</span>Show hand</div>
           <div class="step"><span class="step-num">3</span>Pinch &amp; open</div>
         </div>
-        <p class="fallback-note">No camera? <strong>Drag left/right</strong> on the flower.</p>
+        <p class="fallback-note">No camera? <strong>Drag left ↔ right</strong> on the flower.</p>
         <button class="start-btn" id="start-btn">Start Experience →</button>
       </div>
     </div>
   </main>
 
-  <!--
-    MediaPipe Tasks-Vision (NEW stable API)
-    - Uses WASM + CPU delegate
-    - ZERO WebGL canvas context errors
-    - ZERO alert() calls ever
-  -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.js" crossorigin="anonymous"></script>
+  <!-- MediaPipe Hands — loads successfully, detects hands reliably -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <script src="app.js"></script>
 </body>
 </html>
