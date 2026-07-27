@@ -39,7 +39,7 @@ cd Gesture-bloom
 node -e "const http=require('http'),fs=require('fs'),path=require('path');const mime={'.html':'text/html','.css':'text/css','.js':'application/javascript'};http.createServer((req,res)=>{const fp=path.join(__dirname,req.url==='/'?'index.html':req.url.slice(1));try{const d=fs.readFileSync(fp);res.writeHead(200,{'Content-Type':mime[path.extname(fp)]||'text/plain'});res.end(d)}catch(e){res.writeHead(404);res.end('Not found')}}).listen(5500,()=>console.log('Open http://localhost:5500'))"
 ```
 
-Then open **http://localhost:5500** in your browser.
+Then open  https://albin669-gif.github.io/Gesture-bloom/ in your browser.
 
 > **No camera?** Drag left/right on the flower canvas to bloom it manually!
 
